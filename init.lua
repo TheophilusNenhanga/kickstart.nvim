@@ -585,7 +585,7 @@ require('lazy').setup({
     opts = {
       notify_on_error = false,
       format_on_save = function(bufnr)
-        -- Enable format on save for C files
+        -- Enable format on save for C files and text files
         local disable_filetypes = { cpp = true }  -- Remove 'c' from disabled list
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
@@ -600,12 +600,23 @@ require('lazy').setup({
         lua = { 'stylua' },
         c = { 'clang-format' }, -- Add clang-format for C files
         h = { 'clang-format' }, -- Add clang-format for header files
+        text = { 'text_wrapper' }, -- Add text formatter for .txt files
+        markdown = { 'text_wrapper' }, -- Also format markdown files
       },
       formatters = {
         ['clang-format'] = {
           prepend_args = {
             '--style={IndentWidth: 8, UseTab: Always, TabWidth: 8, ColumnLimit: 80}',
           },
+        },
+        -- Custom text wrapper formatter using fmt command
+        text_wrapper = {
+          command = 'fmt',
+          args = { '-w', '80' }, -- Wrap at 80 characters
+          stdin = true,
+          condition = function()
+            return vim.fn.executable('fmt') == 1
+          end,
         },
       },
     },
