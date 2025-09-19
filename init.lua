@@ -58,6 +58,39 @@ vim.o.scrolloff = 10
 -- instead raise a dialog asking if you wish to save the current file(s)
 vim.o.confirm = true
 
+-- C Development specific configurations
+-- Set textwidth to 80 characters for C files
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'c', 'h' },
+  callback = function()
+    vim.bo.textwidth = 80
+    vim.bo.tabstop = 8
+    vim.bo.shiftwidth = 8
+    vim.bo.expandtab = false  -- Use tabs instead of spaces
+    vim.bo.softtabstop = 0    -- Disable soft tabs
+    vim.wo.colorcolumn = '80' -- Show 80 character marker
+  end,
+})
+
+-- Add 80 character marker for txt files and Makefiles
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'text', 'make' },
+  callback = function()
+    vim.wo.colorcolumn = '80'
+  end,
+})
+
+-- Also handle Makefiles by filename pattern since they might not have extension
+vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
+  pattern = { 'Makefile', 'makefile', '*.mk' },
+  callback = function()
+    vim.wo.colorcolumn = '80'
+    vim.bo.expandtab = false  -- Makefiles must use tabs
+    vim.bo.tabstop = 8
+    vim.bo.shiftwidth = 8
+  end,
+})
+
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
@@ -481,7 +514,26 @@ require('lazy').setup({
 
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
-          local servers = {
+      local servers = {
+        -- Add clangd for C/C++ development
+        clangd = {
+          cmd = {
+            'clangd',
+            '--background-index',
+            '--clang-tidy',
+            '--header-insertion=iwyu',
+            '--completion-style=detailed',
+            '--function-arg-placeholders',
+            '--fallback-style=llvm',
+          },
+          init_options = {
+            usePlaceholders = true,
+            completeUnimported = true,
+            clangdFileStatus = true,
+          },
+          -- Configure clangd settings for better C development
+          settings = {},
+        },
 
         lua_ls = {
          
@@ -498,6 +550,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'clang-format', -- Used to format C/C++ code
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -532,7 +585,8 @@ require('lazy').setup({
     opts = {
       notify_on_error = false,
       format_on_save = function(bufnr)
-        local disable_filetypes = { c = true, cpp = true }
+        -- Enable format on save for C files
+        local disable_filetypes = { cpp = true }  -- Remove 'c' from disabled list
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
@@ -544,6 +598,15 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        c = { 'clang-format' }, -- Add clang-format for C files
+        h = { 'clang-format' }, -- Add clang-format for header files
+      },
+      formatters = {
+        ['clang-format'] = {
+          prepend_args = {
+            '--style={IndentWidth: 8, UseTab: Always, TabWidth: 8, ColumnLimit: 80}',
+          },
+        },
       },
     },
   },
@@ -655,7 +718,7 @@ require('lazy').setup({
     build = ':TSUpdate',
     main = 'nvim-treesitter.configs', 
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'cpp', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'make' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -665,6 +728,55 @@ require('lazy').setup({
       indent = { enable = true, disable = { 'ruby' } },
     },
   },
+
+  -- Additional plugins for C development
+  { -- Better syntax highlighting and indentation
+    'bfrg/vim-cpp-modern',
+    ft = { 'c', 'cpp' },
+  },
+
+  { -- Enhanced C/C++ highlighting
+    'jackguo380/vim-lsp-cxx-highlight',
+    ft = { 'c', 'cpp' },
+  },
+
+  -- Git integration improvements for development workflow
+  { -- Enhanced git signs with more detailed hunk information
+    'sindrets/diffview.nvim',
+    cmd = { 'DiffviewOpen', 'DiffviewClose', 'DiffviewToggleFiles', 'DiffviewFocusFiles' },
+    keys = {
+      { '<leader>gd', '<cmd>DiffviewOpen<cr>', desc = '[G]it [D]iff view' },
+      { '<leader>gh', '<cmd>DiffviewFileHistory %<cr>', desc = '[G]it file [H]istory' },
+    },
+  },
+
+  -- Enhanced matching for C constructs
+  { -- Better % matching for C constructs
+    'andymass/vim-matchup',
+    event = 'VimEnter',
+    init = function()
+      vim.g.matchup_matchparen_offscreen = { method = 'popup' }
+    end,
+  },
+
+  -- Improved folding for C files
+  { -- Better code folding
+    'kevinhwang91/nvim-ufo',
+    dependencies = 'kevinhwang91/promise-async',
+    event = 'BufReadPost',
+    opts = {
+      provider_selector = function(bufnr, filetype, buftype)
+        return { 'treesitter', 'indent' }
+      end,
+    },
+    init = function()
+      vim.o.foldcolumn = '1'
+      vim.o.foldlevel = 99
+      vim.o.foldlevelstart = 99
+      vim.o.foldenable = true
+    end,
+  },
+
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
