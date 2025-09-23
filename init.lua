@@ -64,8 +64,8 @@ vim.api.nvim_create_autocmd('FileType', {
   pattern = { 'c', 'h' },
   callback = function()
     vim.bo.textwidth = 80
-    vim.bo.tabstop = 8
-    vim.bo.shiftwidth = 8
+    vim.bo.tabstop = 4
+    vim.bo.shiftwidth = 4
     vim.bo.expandtab = false  -- Use tabs instead of spaces
     vim.bo.softtabstop = 0    -- Disable soft tabs
     vim.wo.colorcolumn = '80' -- Show 80 character marker
