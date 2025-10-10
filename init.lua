@@ -72,6 +72,18 @@ vim.api.nvim_create_autocmd('FileType', {
   end,
 })
 
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'zig' },
+  callback = function()
+    vim.bo.textwidth = 100
+    vim.bo.tabstop = 4
+    vim.bo.shiftwidth = 4
+    vim.bo.expandtab = true    -- Zig uses spaces
+    vim.bo.softtabstop = 4
+    vim.wo.colorcolumn = '100' -- Zig convention is 100 characters
+  end,
+})
+
 -- Add 80 character marker for txt files and Makefiles
 vim.api.nvim_create_autocmd('FileType', {
   pattern = { 'text', 'make' },
@@ -85,7 +97,7 @@ vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
   pattern = { 'Makefile', 'makefile', '*.mk' },
   callback = function()
     vim.wo.colorcolumn = '80'
-    vim.bo.expandtab = false  -- Makefiles must use tabs
+    vim.bo.expandtab = false -- Makefiles must use tabs
     vim.bo.tabstop = 8
     vim.bo.shiftwidth = 8
   end,
@@ -210,7 +222,7 @@ require('lazy').setup({
   -- Then, because we use the `opts` key (recommended), the configuration runs
   -- after the plugin has been loaded as `require(MODULE).setup(opts)`.
 
-  { -- Useful plugin to show you pending keybinds.
+  {                     -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
@@ -291,7 +303,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -392,7 +404,7 @@ require('lazy').setup({
       'mason-org/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
-      { 'j-hui/fidget.nvim', opts = {} },
+      { 'j-hui/fidget.nvim',    opts = {} },
 
       'saghen/blink.cmp',
     },
@@ -400,7 +412,6 @@ require('lazy').setup({
       vim.api.nvim_create_autocmd('LspAttach', {
         group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
         callback = function(event)
-          
           local map = function(keys, func, desc, mode)
             mode = mode or 'n'
             vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
@@ -537,8 +548,17 @@ require('lazy').setup({
           settings = {},
         },
 
+        zls = {
+          settings = {
+            zls = {
+              enable_inlay_hints = true,
+              enable_snippets = true,
+              warn_style = true,
+            },
+          },
+        },
+
         lua_ls = {
-         
           settings = {
             Lua = {
               completion = {
@@ -551,7 +571,7 @@ require('lazy').setup({
 
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
-        'stylua', -- Used to format Lua code
+        'stylua',       -- Used to format Lua code
         'clang-format', -- Used to format C/C++ code
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -588,7 +608,7 @@ require('lazy').setup({
       notify_on_error = false,
       format_on_save = function(bufnr)
         -- Enable format on save for C files and text files
-        local disable_filetypes = { cpp = true }  -- Remove 'c' from disabled list
+        local disable_filetypes = { cpp = true } -- Remove 'c' from disabled list
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
@@ -600,10 +620,11 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        c = { 'clang-format' }, -- Add clang-format for C files
-        h = { 'clang-format' }, -- Add clang-format for header files
-        text = { 'text_wrapper' }, -- Add text formatter for .txt files
+        c = { 'clang-format' },        -- Add clang-format for C files
+        h = { 'clang-format' },        -- Add clang-format for header files
+        text = { 'text_wrapper' },     -- Add text formatter for .txt files
         markdown = { 'text_wrapper' }, -- Also format markdown files
+        zig = { 'zigfmt' },
       },
       formatters = {
         ['clang-format'] = {
@@ -611,6 +632,13 @@ require('lazy').setup({
             '--style={IndentWidth: 8, UseTab: Always, TabWidth: 8, ColumnLimit: 80}',
           },
         },
+
+        zigfmt = {
+          command = 'zig',
+          args = { 'fmt', '--stdin' },
+          stdin = true
+        },
+
         -- Custom text wrapper formatter using fmt command
         text_wrapper = {
           command = 'fmt',
@@ -676,7 +704,7 @@ require('lazy').setup({
     },
   },
 
-  { 
+  {
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
     'folke/tokyonight.nvim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
@@ -729,9 +757,9 @@ require('lazy').setup({
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', 
+    main = 'nvim-treesitter.configs',
     opts = {
-      ensure_installed = { 'bash', 'c', 'cpp', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'make' },
+      ensure_installed = { 'bash', 'c', 'cpp', 'zig', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'make' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -758,7 +786,7 @@ require('lazy').setup({
     'sindrets/diffview.nvim',
     cmd = { 'DiffviewOpen', 'DiffviewClose', 'DiffviewToggleFiles', 'DiffviewFocusFiles' },
     keys = {
-      { '<leader>gd', '<cmd>DiffviewOpen<cr>', desc = '[G]it [D]iff view' },
+      { '<leader>gd', '<cmd>DiffviewOpen<cr>',          desc = '[G]it [D]iff view' },
       { '<leader>gh', '<cmd>DiffviewFileHistory %<cr>', desc = '[G]it file [H]istory' },
     },
   },
